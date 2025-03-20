@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
-
 import '../../data/quasioncondenr.dart';
 import '../../data/queasion.dart';
 
@@ -13,23 +13,57 @@ class Car extends StatefulWidget {
 
 class _CarState extends State<Car> {
   int questionindex = 0;
-  int correctAnswers = 0; // NEW: to count correct answers
+  int correctAnswers = 0;
   bool anserselected = false;
+  int timeLeft = 30;
+  Timer? timer;
 
-  // Function to handle answer selection
+  @override
+  void initState() {
+    super.initState();
+    startTimer(); // Start timer immediately
+  }
+
+  void startTimer() {
+    timeLeft = 30;
+    timer?.cancel();
+    timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (timeLeft > 0) {
+        setState(() {
+          timeLeft--;
+        });
+      } else {
+        timer.cancel();
+        moveToNextQuestion();
+      }
+    });
+  }
+
+  void moveToNextQuestion() {
+    if (isFinished()) {
+      showAlert();
+    } else {
+      setState(() {
+        questionindex++;
+        anserselected = false;
+        startTimer(); // Restart timer for next question
+      });
+    }
+  }
+
   void selectAnswer(bool isCorrect) {
     if (!anserselected) {
       setState(() {
         anserselected = true;
         if (isCorrect) {
-          correctAnswers++; // Increment if correct
+          correctAnswers++;
         }
       });
     }
   }
 
-  // Function to show alert at end
   void showAlert() {
+    timer?.cancel(); // Stop timer
     Alert(
       context: context,
       title: 'Quiz Finished!',
@@ -39,16 +73,21 @@ class _CarState extends State<Car> {
           child: Text('OK'),
           onPressed: () {
             Navigator.pop(context); // Close alert
-            Navigator.pop(context); // Go back to menu
+            Navigator.pop(context); // Back to menu
           },
         ),
       ],
     ).show();
   }
 
-  // Function to check if quiz is finished
   bool isFinished() {
     return questionindex >= questions.length - 1;
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -58,7 +97,7 @@ class _CarState extends State<Car> {
       appBar: AppBar(
         backgroundColor: Color(0xff130f40),
         leading: Icon(Icons.timelapse_outlined, color: Color(0xffFFFFFF)),
-        title: Text("Quiz", style: TextStyle(color: Color(0xffFFFFFF))),
+        title: Text(" ${timeLeft}", style: TextStyle(color: Color(0xffFFFFFF))),
         actions: [
           InkWell(
             child: Icon(Icons.chevron_left, color: Color(0xffFFFFFF)),
@@ -73,19 +112,17 @@ class _CarState extends State<Car> {
         children: [
           SizedBox(height: 67),
           Center(
-              child: Text(
-                "Question ${questionindex + 1}/${questions.length}",
-                style: TextStyle(color: Color(0xffFFFFFF)),
-              )),
+            child: Text(
+              "Question ${questionindex + 1}/${questions.length}",
+              style: TextStyle(color: Color(0xffFFFFFF)),
+            ),
+          ),
           SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: Text(
               questions[questionindex]['question'] as String,
-              style: TextStyle(
-                color: Color(0xffFFFFFF),
-                fontSize: 25,
-              ),
+              style: TextStyle(color: Color(0xffFFFFFF), fontSize: 25),
             ),
           ),
           SizedBox(height: 20),
@@ -97,27 +134,28 @@ class _CarState extends State<Car> {
                   ? (answer['score'] as bool ? Colors.green : Colors.red)
                   : Colors.white,
               ansertab: () {
-                selectAnswer(answer['score'] as bool); // Check correct
+                selectAnswer(answer['score'] as bool);
               },
             ),
           )
               .toList(),
           SizedBox(height: 80),
           TextButton(
-              style: TextButton.styleFrom(
-                  fixedSize: Size(400, 60),
-                  backgroundColor: Color(0xffFFFFFF)),
-              onPressed: () {
-                if (isFinished()) {
-                  showAlert(); // Show alert when done
-                } else {
-                  setState(() {
-                    questionindex++;
-                    anserselected = false;
-                  });
-                }
-              },
-              child: Text(isFinished() ? 'Finish' : "Next")),
+            style: TextButton.styleFrom(
+              fixedSize: Size(400, 60),
+              backgroundColor: Color(0xffFFFFFF),
+            ),
+            onPressed: () {
+              if (!anserselected) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Please select an answer")),
+                );
+                return;
+              }
+              moveToNextQuestion();
+            },
+            child: Text(isFinished() ? 'Finish' : "Next"),
+          ),
         ],
       ),
     );

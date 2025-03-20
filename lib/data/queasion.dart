@@ -44,9 +44,9 @@ final questions = const [
 {
 'question': 'How many players are on a baseball team?',
 'answers': [
-{'answerText': '9', 'score': true},
+{'answerText': '9', 'score': false},
 {'answerText': '11', 'score': false},
-{'answerText': '7', 'score': false},
+{'answerText': '7', 'score': true},
 ],
 },
 {
